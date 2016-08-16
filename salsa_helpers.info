@@ -1,0 +1,4 @@
+name = SalsaDigital helper functions
+description = General functions which are to be used to facilitate coding
+core = 7.x
+package = Salsa Digital

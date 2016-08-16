@@ -1,0 +1,239 @@
+<?php
+/**
+ * @file
+ * Helper functions that are used in code.
+ */
+
+/**
+ * Helper to print messages within install functions and update hooks.
+ *
+ * @param string|array $messages
+ *   String message or array of messages.
+ * @param string $prefix
+ *   Prefix to be used for messages when called through CLI. Defaults to '-- '.
+ * @param int $indent
+ *   Indent for messages. Defaults to 2.
+ * @param string $type
+ *   The 'type' of status (e.g. 'warning').
+ *   Only applicable to drupal_set_message().
+ */
+function salsa_helpers_print($messages, $prefix = '-- ', $indent = 2, $type = 'status') {
+  $messages = is_array($messages) ? $messages : array($messages);
+  foreach ($messages as $message) {
+    if (function_exists('drush_print')) {
+      drush_print(((string) $prefix) . html_entity_decode($message), $indent);
+    }
+    else {
+      drupal_set_message($message, $type);
+    }
+  }
+}
+
+/**
+ * Reverts all components of a feature.
+ *
+ * @param string $module
+ *   Module name to revert.
+ * @param string $component
+ *   Optional component name to revert. All module component are reverted if
+ *   component is not specified.
+ * @param bool $verbose
+ *   Flag to print verbose messages.
+ *
+ * @return bool
+ *   TRUE if component was successfully reverted, FALSE otherwise.
+ */
+function salsa_helpers_features_revert($module, $component = NULL, $verbose = TRUE) {
+  module_load_include('inc', 'features', 'features.export');
+  features_include();
+  if (($feature = feature_load($module, TRUE)) && module_exists($module)) {
+    $components = array();
+    if (is_null($component)) {
+      // Forcefully revert all components of a feature.
+      foreach (array_keys($feature->info['features']) as $component) {
+        if (features_hook($component, 'features_revert')) {
+          $components[] = $component;
+        }
+      }
+    }
+    else {
+      // Use the $component argument of this function.
+      $components[] = $component;
+    }
+    foreach ($components as $component) {
+      features_revert(array($module => array($component)));
+    }
+
+    if ($verbose) {
+      salsa_helpers_print(t('Reverted "!module" feature components !components.', array(
+        '!module' => $module,
+        '!components' => implode(', ', $components),
+      )));
+    }
+
+    return TRUE;
+  }
+  else {
+    if ($verbose) {
+      salsa_helpers_print(t('Unable to revert "!module" feature.', array('!module' => $module)));
+    }
+
+    return FALSE;
+  }
+}
+
+/**
+ * Enables a module and does some error checking.
+ */
+function salsa_helpers_enable_module($module, $enable_dependencies = TRUE) {
+  if (module_exists($module)) {
+    salsa_helpers_print($module . ' already exists - Aborting!');
+
+    return TRUE;
+  }
+  $ret = module_enable(array($module), $enable_dependencies);
+  if ($ret) {
+    // Double check that the installed.
+    if (salsa_helpers_check_module_enabled($module)) {
+      salsa_helpers_print('Successfully enabled ' . $module);
+
+      return TRUE;
+    }
+  }
+
+  throw new DrupalUpdateException('Could not enable module ' . $module);
+}
+
+/**
+ * Disables a module and does some error checking.
+ */
+function _salsa_helpers_disable_module($module, $disable_dependents = TRUE) {
+  if (!module_exists($module)) {
+    salsa_helpers_print($module . ' does not exist - Aborting!');
+
+    return TRUE;
+  }
+  module_disable(array($module), $disable_dependents);
+  if (!salsa_helpers_check_module_enabled($module)) {
+    salsa_helpers_print('Disabled module ' . $module);
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+/**
+ * Uninstalls a module and does some error checking.
+ */
+function salsa_helpers_uninstall_module($module, $disable_dependents = TRUE) {
+  _salsa_helpers_disable_module($module, $disable_dependents);
+  drupal_uninstall_modules(array($module), TRUE);
+
+  // @todo: Add check that the module has been uninstalled.
+  salsa_helpers_print('Uninstalled module ' . $module);
+
+  return TRUE;
+}
+
+/**
+ * Checks whether module is enabled.
+ *
+ * @return bool
+ *   TRUE if module is enabled, FALSE otherwise.
+ */
+function salsa_helpers_check_module_enabled($module) {
+  $q = db_select('system');
+  $q->fields('system', array('name', 'status'))
+    ->condition('name', $module, '=');
+  $rs = $q->execute();
+
+  return (bool) $rs->fetch()->status;
+}
+
+/**
+ * Helper to get information into watchdog.
+ *
+ * This helper should be used in every custom try-catch.
+ */
+function salsa_helpers_watchdog_log(Exception $e) {
+  $func = 'undefined custom function';
+  $module = 'custom';
+  $callers = debug_backtrace();
+  if (isset($callers[1]['function'])) {
+    $func = $callers[1]['function'];
+    $matched_modules = array();
+    foreach (module_list() as $module_name) {
+      if (strpos($func, $module_name) === 0) {
+        // Since there cannot be 2 modules with the same name, array key will
+        // be unique.
+        $matched_modules[strlen($module_name)] = $module_name;
+      }
+    }
+
+    if (!empty($matched_modules)) {
+      // Sort matched modules by key and get the longest one.
+      ksort($matched_modules);
+      $module = end($matched_modules);
+    }
+  }
+
+  // Make sure that exception was actually thrown.
+  if (is_object($e)) {
+    $message = $e->getMessage();
+  }
+  else {
+    $message = t('Improper use of @self function', array('@self' => __FUNCTION__));
+  }
+  watchdog($module, $message . ' See ' . $func . '() <pre>' . $e->getTraceAsString() . '</pre>', NULL, WATCHDOG_ERROR);
+}
+
+/**
+ * Forcefully removes module name from the system table.
+ *
+ * This function could be used when a module gets renamed, or it's code
+ * removed so that normal module disable and module uninstall not possible.
+ *
+ * @param string $module
+ *   Module name.
+ */
+function salsa_helpers_force_remove_module_record($module) {
+  $q = db_delete('system');
+  $q->condition('name', $module, '=');
+  $q->execute();
+}
+
+/**
+ * Helpers for detecting one of the date is in today or future.
+ *
+ * @param array $date_field
+ *   The raw value from date field.
+ *
+ * @return bool
+ *   True if one of the dates is today/future date.
+ */
+function salsa_helpers_is_today_or_future_dates($date_field) {
+  // Get yesterday date without time.
+  $timezone = date_default_timezone_get();
+  $timezone = new DateTimeZone($timezone);
+  $yesterday = new DateTime('yesterday', $timezone);
+  $yesterday->setTime(0, 0, 0);
+
+  foreach ($date_field as $date) {
+    // Decide which date should be used.
+    $date_field = $date['value'];
+    if (!empty($date['value2'])) {
+      $date_field = $date['value2'];
+    }
+
+    $date_field_obj = new DateTime($date_field, $timezone);
+    $date_field_obj->setTime(0, 0, 0);
+
+    // If one of the date is today or future, return TRUE.
+    if ($date_field_obj > $yesterday) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
