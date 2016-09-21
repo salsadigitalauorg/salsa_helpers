@@ -1,5 +1,5 @@
 <?php
 /**
  * @file
- * Install file for salsa_helpers module.
+ * Installation functions for Salsa Helper module.
  */

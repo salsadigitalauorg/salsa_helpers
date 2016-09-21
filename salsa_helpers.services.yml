@@ -1,0 +1,4 @@
+services:
+  salsa.helpers:
+    class: Drupal\salsa_helpers\SalsaHelpers
+    arguments: ['@entity.manager', '@config.factory', '@current_route_match', '@plugin.manager.menu.link']
