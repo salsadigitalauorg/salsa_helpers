@@ -74,6 +74,9 @@ class SalsaHelpers {
   }
 
   /**
+   * Install modules.
+   * This helper should be called in hook_update().
+   *
    * @param string[] $module_names
    *   An array of module names.
    * @param bool $enable_dependencies
@@ -89,7 +92,7 @@ class SalsaHelpers {
    *
    * @see ModuleInstallerInterface::install().
    */
-  public function installModule(array $module_names, $enable_dependencies = TRUE) {
+  public function installModules(array $module_names, $enable_dependencies = TRUE) {
     /** @var ModuleInstallerInterface $module_installer */
     $module_installer = \Drupal::service('module_installer');
     return $module_installer->install($module_names, $enable_dependencies);
@@ -111,7 +114,6 @@ class SalsaHelpers {
       'type' => $type,
       'uuid' => $uuid,
       'info' => $title,
-      'category' => 'Banner',
     ]);
     $block->save();
 
@@ -162,8 +164,8 @@ class SalsaHelpers {
    * @return \Drupal\taxonomy\Entity\Term
    */
   public function createTaxonomyTerm($vocabulary_machine_name, $term_name, $parent_id = 0, $weight = 0, $term_machine_name = NULL) {
-    if (empty($term_machine_name) && \Drupal::moduleHandler()
-        ->moduleExists('taxonomy_machine_name')
+    if (empty($term_machine_name)
+      && \Drupal::moduleHandler()->moduleExists('taxonomy_machine_name')
     ) {
       $term_machine_name = taxonomy_machine_name_clean_name($term_name);
       $term_machine_name = preg_replace('/([\_]{2,})/', '_', $term_machine_name);
