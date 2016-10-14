@@ -6,28 +6,28 @@
 $salsaHelpers = \Drupal::service('salsa.helpers');
 ```
 
-### Some helper functions:
-1. ```generateUuid()``` 
+## Some helper functions:
+#### ```generateUuid()``` 
 ```php
 <?php
 $uuid = $salsaHelpers->generateUuid();
 ```
-2. ```installModules()```
+#### ```installModules()```
 ```php
 <?php
 $salsaHelpers->installModules(['taxonomy_machine_name']);
 ```
-3. ```createEmptyBlockContent()```
+#### ```createEmptyBlockContent()```
 ```php
 <?php
 $salsaHelpers->createEmptyBlockContent('block_type', 'a0a2901e-b13b-456a-a7fb-ba65abe9731a', 'My Block');
 ```
-4. ```createMenuLink()```
+#### ```createMenuLink()```
 ```php
 <?php
 $salsaHelpers->createMenuLink('main', 'Home page', 'internal:/');
 ```
-5. ```createTaxonomyTerm()```
+#### ```createTaxonomyTerm()```
 ```php
 <?php
 $salsaHelpers->createTaxonomyTerm('my_vocabulary', 'Term Name');
