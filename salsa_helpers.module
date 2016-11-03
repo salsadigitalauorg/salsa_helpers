@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Helper functions that are used in code.
@@ -183,9 +184,13 @@ function salsa_helpers_watchdog_log(Exception $e) {
     $message = $e->getMessage();
   }
   else {
-    $message = t('Improper use of @self function', array('@self' => __FUNCTION__));
+    $message = t('Improper use of @self function. See @func() !trace', array(
+      '@self' => __FUNCTION__,
+      '@func' => $func,
+      '!trace' => $e->getTraceAsString(),
+    ));
   }
-  watchdog($module, $message . ' See ' . $func . '() <pre>' . $e->getTraceAsString() . '</pre>', NULL, WATCHDOG_ERROR);
+  watchdog($module, $message, NULL, WATCHDOG_ERROR);
 }
 
 /**
@@ -236,4 +241,141 @@ function salsa_helpers_is_today_or_future_dates($date_field) {
   }
 
   return FALSE;
+}
+
+/**
+ * Creates and saves a bean to the database.
+ *
+ * Content for the bean should be passed in the form of a callback function.
+ *
+ * @param string $label
+ *   Label for the bean.
+ * @param string $title
+ *   Title for the bean.
+ * @param string $description
+ *   Description for the bean.
+ * @param string $delta
+ *   Delta for the bean.
+ * @param callable $content_callback
+ *   Callback function which will return the content for the bean.
+ */
+function salsa_helpers_create_bean($label, $title, $description, $delta, callable $content_callback) {
+  $bean = bean_create(array('type' => 'basic_content'));
+  $bean->label = $label;
+  $bean->title = $title;
+  $bean->description = $description;
+  $bean->delta = $delta;
+  $bean->field_bean_body = array(
+    'und' => array(
+      array(
+        'value' => $content_callback(),
+        'format' => 'rich_text',
+      ),
+    ),
+  );
+  $bean->save();
+  _block_rehash();
+}
+
+/**
+ * Helper function: Create date format/type.
+ */
+function salsa_helpers_create_date_format_type($date_format, $date_type, $date_title) {
+  // Create the new date format.
+  db_insert('date_formats')
+    ->fields(array(
+      'format' => $date_format,
+      'type' => 'custom',
+      'locked' => 0,
+    ))
+    ->execute();
+
+  // Create the new date type.
+  db_insert('date_format_type')
+    ->fields(array(
+      'type' => $date_type,
+      'title' => $date_title,
+      'locked' => 0,
+    ))
+    ->execute();
+
+  // Finally attach the two together.
+  variable_set('date_format_' . $date_type, $date_format);
+}
+
+/**
+ * Add a block to a region with the specified weight.
+ *
+ * @param string $block_name
+ *   Name of the block to place.
+ * @param string $module
+ *   Module from which block originates.
+ * @param string $region
+ *   Region to place block in.
+ * @param int $weight
+ *   Weight of the block.
+ * @param string $theme
+ *   Theme to place in.
+ * @param string $pages
+ *   Optional argument to specify what pages block should appear on.
+ */
+function salsa_helpers_add_block_to_region($block_name, $module, $region, $weight, $theme, $pages = '') {
+  db_merge('block')
+    ->fields(array(
+      'region' => $region,
+      'status' => 1,
+      'weight' => $weight,
+      'pages' => $pages,
+    ))
+    ->condition('module', $module)
+    ->condition('delta', $block_name)
+    ->condition('theme', $theme)
+    ->execute();
+}
+
+/**
+ * Create a taxonomy term for the specified vocabulary.
+ *
+ * @param string $name
+ *   Name of the taxonomy term.
+ * @param string $description
+ *   Description for the term.
+ * @param string $taxonomy_machine_name
+ *   ID of the vocabulary to add to.
+ * @param int $parent
+ *   (optional) The ID of the parent taxonomy term.
+ *
+ * @return int
+ *   The ID of the newly created taxonomy term.
+ */
+function salsa_helpers_create_taxonomy_term($name, $description, $taxonomy_machine_name, $parent = 0) {
+  $vid = taxonomy_vocabulary_machine_name_load($taxonomy_machine_name)->vid;
+  $term = new stdClass();
+  $term->name = $name;
+  $term->description = $description;
+  $term->vid = $vid;
+  $term->parent = $parent;
+  taxonomy_term_save($term);
+  return $term->tid;
+}
+
+/**
+ * Deletes the menu item with the specified menu name and path.
+ *
+ * @param string $path
+ *   Path of the menu item.
+ * @param string $menu_name
+ *   Name of the menu to delete from.
+ */
+function salsa_helpers_delete_menu_item($path, $menu_name) {
+  $mlids = db_select('menu_links', 'ml')
+    ->condition('ml.link_path', $path)
+    ->condition('ml.menu_name', $menu_name)
+    ->fields('ml', array('mlid'))
+    ->execute()
+    ->fetchAll();
+
+  foreach ($mlids as $value) {
+    menu_link_delete($value->mlid);
+  }
 }
