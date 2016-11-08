@@ -318,14 +318,17 @@ function salsa_helpers_create_date_format_type($date_format, $date_type, $date_t
  *   Theme to place in.
  * @param string $pages
  *   Optional argument to specify what pages block should appear on.
+ * @param int $visibility
+ *   Optional argument to specify the visibility setting for $pages.
  */
-function salsa_helpers_add_block_to_region($block_name, $module, $region, $weight, $theme, $pages = '') {
+function salsa_helpers_add_block_to_region($block_name, $module, $region, $weight, $theme, $pages = '', $visibility = 0) {
   db_merge('block')
     ->fields(array(
       'region' => $region,
       'status' => 1,
       'weight' => $weight,
       'pages' => $pages,
+      'visibility' => $visibility,
     ))
     ->condition('module', $module)
     ->condition('delta', $block_name)
