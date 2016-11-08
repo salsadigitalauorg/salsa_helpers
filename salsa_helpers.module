@@ -379,3 +379,59 @@ function salsa_helpers_delete_menu_item($path, $menu_name) {
     menu_link_delete($value->mlid);
   }
 }
+
+/**
+ * Ensure a taxonomy vocabulary to exist.
+ *
+ * @param string $machine_name
+ *   Machine name of the vocabulary.
+ * @param string $name
+ *   Name of the vocabulary.
+ *
+ * @return object
+ *   The loaded taxonomy vocabulary.
+ */
+function salsa_helpers_ensure_vocabulary($machine_name, $name) {
+  if (!($vocabulary = taxonomy_vocabulary_machine_name_load($machine_name))) {
+    $vocabulary = new stdClass();
+    $vocabulary->name = $name;
+    $vocabulary->machine_name = $machine_name;
+    taxonomy_vocabulary_save($vocabulary);
+  }
+
+  return $vocabulary;
+}
+
+/**
+ * Create a taxonomy hierarchy.
+ *
+ * @param string $vocabulary_id
+ *   The vid of the vocabulary.
+ * @param array $terms_data
+ *   The hierarchy data array with the following structure:
+ *   - [term_name, term_name, ...].
+ *   - [term_name => ['#description' => term_desc], ...].
+ *   - [term_name => [child_term, child_term], ...].
+ *   - [term_name => ['#description' => term_desc, [children]], ...].
+ * @param int $parent_term_id
+ *   The parent term to attach the hierarchy to.
+ */
+function salsa_helpers_create_taxonomy_hierarchy($vocabulary_id, array $terms_data, $parent_term_id = NULL) {
+  $weight = 0;
+  foreach ($terms_data as $key => $term_data) {
+    $term = new stdClass();
+    $term->vid = $vocabulary_id;
+    $term->name = is_array($term_data) ? $key : $term_data;
+    $term->parent = $parent_term_id ? [$parent_term_id] : NULL;
+    if (is_array($term_data) && !empty($term_data['#description'])) {
+      $term->description = $term_data['#description'];
+      unset($term_data['#description']);
+    }
+    $term->weight = $weight++;
+    taxonomy_term_save($term);
+
+    if ($term && is_array($term_data) && count($term_data)) {
+      salsa_helpers_create_taxonomy_hierarchy($vocabulary_id, $term_data, $term->tid);
+    }
+  }
+}
