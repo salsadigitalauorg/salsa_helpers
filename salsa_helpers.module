@@ -438,3 +438,20 @@ function salsa_helpers_create_taxonomy_hierarchy($vocabulary_id, array $terms_da
     }
   }
 }
+
+/**
+ * Disable views.
+ *
+ * @param string[] $view_machine_names
+ *   Array of view machine name.
+ */
+function salsa_helpers_disable_views($view_machine_names) {
+  $views_status = variable_get('views_defaults', array());
+  foreach ($view_machine_names as $view_machine_name) {
+    $views_status[$view_machine_name] = TRUE;
+  }
+  variable_set('views_defaults', $views_status);
+
+  module_load_include('module', 'views');
+  views_invalidate_cache();
+}
