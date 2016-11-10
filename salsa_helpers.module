@@ -457,3 +457,30 @@ function salsa_helpers_disable_views($view_machine_names) {
   module_load_include('module', 'views');
   views_invalidate_cache();
 }
+
+/**
+ * Disable Display Suite layout for a view mode of an entity bundle.
+ *
+ * @param string $entity_type
+ *   Entity type.
+ * @param string $bundle
+ *   Bundle name.
+ * @param string $view_mode
+ *   Machine name of the view mode.
+ *
+ * @see ds_disable_layout_field_settings_form_submit()
+ */
+function salsa_helpers_disable_ds_layout($entity_type, $bundle, $view_mode) {
+  if (module_exists('ctools') && module_exists('ds')) {
+    $export_id = implode('|', [$entity_type, $bundle, $view_mode]);
+
+    ctools_include('export');
+    ctools_export_crud_disable('ds_layout_settings', $export_id);
+    ctools_export_crud_disable('ds_field_settings', $export_id);
+    // Clear the ds_fields cache.
+    cache_clear_all('ds_fields:', 'cache', TRUE);
+    cache_clear_all('ds_field_settings', 'cache');
+    // Clear entity info cache.
+    cache_clear_all('entity_info', 'cache', TRUE);
+  }
+}
