@@ -258,8 +258,10 @@ function salsa_helpers_is_today_or_future_dates($date_field) {
  *   Delta for the bean.
  * @param callable $content_callback
  *   Callback function which will return the content for the bean.
+ * @param string $body_format
+ *   Machine name of input format for body field.
  */
-function salsa_helpers_create_bean($label, $title, $description, $delta, callable $content_callback) {
+function salsa_helpers_create_bean($label, $title, $description, $delta, callable $content_callback, $body_format = 'rich_text') {
   $bean = bean_create(array('type' => 'basic_content'));
   $bean->label = $label;
   $bean->title = $title;
@@ -269,7 +271,7 @@ function salsa_helpers_create_bean($label, $title, $description, $delta, callabl
     'und' => array(
       array(
         'value' => $content_callback(),
-        'format' => 'rich_text',
+        'format' => $body_format,
       ),
     ),
   );
