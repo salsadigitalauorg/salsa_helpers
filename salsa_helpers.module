@@ -484,3 +484,44 @@ function salsa_helpers_disable_ds_layout($entity_type, $bundle, $view_mode) {
     cache_clear_all('entity_info', 'cache', TRUE);
   }
 }
+
+/**
+ * Create a menu link.
+ *
+ * @param array $items
+ *   An array of items.
+ *   Each item should be in a format as expected by menu_link_save().
+ *   Children items can be included as a multidimensional array.
+ *   The weight of the item will automatically be determined by the order in the array if not explicitly set.
+ * @param string $menu_name
+ *   The name of the menu. Recommended if not present in the $items array.
+ */
+function salsa_helpers_create_menu_link($items, $menu_name = NULL) {
+  foreach ($items as $weight => $item) {
+    $children = array();
+    if (!empty($item['children'])) {
+      $children = $item['children'];
+      unset($item['children']);
+    }
+
+    // If no weight is set; determine it from the order in the array.
+    if (empty($item['weight'])) {
+      $item['weight'] = $weight;
+    }
+    // If no menu is set; set it to the value of $menu_name.
+    if (empty($item['menu_name'])) {
+      $item['menu_name'] = $menu_name;
+    }
+
+    // Create the link.
+    $plid = menu_link_save($item);
+
+    if (!empty($children)) {
+      foreach ($children as &$child) {
+        // Ensure the child is relevant to the parent.
+        $child['plid'] = $plid;
+      }
+      salsa_helpers_create_menu_link($children, $item['menu_name']);  
+    }
+  }
+}
