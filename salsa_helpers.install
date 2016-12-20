@@ -3,3 +3,17 @@
  * @file
  * Installation functions for Salsa Helper module.
  */
+
+function salsa_helpers_install() {
+  salsa_helpers_update_8001();
+}
+
+/**
+ * Remove the article content type.
+ */
+function salsa_helpers_update_8001() {
+  /** @var \Drupal\salsa_helpers\SalsaHelpers $salsaHelpers */
+  $salsaHelpers = \Drupal::service('salsa.helpers');
+
+  $salsaHelpers->removeContentType('article');
+}

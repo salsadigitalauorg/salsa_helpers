@@ -182,4 +182,18 @@ class SalsaHelpers {
 
     return $term;
   }
+
+  public function removeContentType($machinename) {
+    // Delete all content for this content type
+    $query = \Drupal::entityQuery('node')
+      ->condition('type', $machinename);
+    $nids = $query->execute();
+    foreach ($nids as $nid) {
+      \Drupal\node\Entity\Node::load($nid)->delete();
+    }
+    // Delete the content type
+    $content_type = \Drupal::entityManager()->getStorage('node_type')->load($machinename);
+    $content_type->delete();
+  }
+
 }

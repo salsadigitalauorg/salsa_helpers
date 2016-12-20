@@ -60,3 +60,11 @@ foreach ($terms as $key => $termData) {
   }
 }
 ```
+#### ```removeContentType()```
+```
+<?php
+  /** @var \Drupal\salsa_helpers\SalsaHelpers $salsaHelpers */
+  $salsaHelpers = \Drupal::service('salsa.helpers');
+
+  $salsaHelpers->removeContentType('<content_type_machine_name>');
+```
