@@ -527,7 +527,33 @@ function salsa_helpers_create_menu_link($items, $menu_name = NULL) {
         // Ensure the child is relevant to the parent.
         $child['plid'] = $plid;
       }
-      salsa_helpers_create_menu_link($children, $item['menu_name']);  
+      salsa_helpers_create_menu_link($children, $item['menu_name']);
     }
   }
 }
+
+/**
+ * Lock or unlock features based on a passed in array
+ *
+ * @param $features
+ *    The list of features.
+ * @param bool $unlock
+ *    Set to TRUE to unlock instead of locak the features.
+ */
+function salsa_helpers_lock_features($features, $unlock = FALSE) {
+  $function = 'features_feature_lock';
+  if ($unlock) {
+    $function = 'features_feature_unlock';
+  }
+  foreach ($features as $feature) {
+    $function($feature);
+    // Also lock all its components.
+    $feature = features_load_feature($feature);
+    if ($feature && !empty($feature->components)) {
+      foreach ($feature->components as $component) {
+        $function($feature->name, $component);
+      }
+    }
+  }
+}
+
