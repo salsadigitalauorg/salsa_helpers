@@ -470,6 +470,21 @@ function salsa_helpers_disable_views($view_machine_names) {
 }
 
 /**
+ * Save views from features into the database for permanent storage. This will allow the
+ * feature to be disabled whilst maintaining the functionality.
+ *
+ * @param string[] $view_machine_names
+ *   Array of view machine name.
+ */
+function salsa_helpers_save_views_to_db($view_machine_names) {
+  module_load_include('module', 'views');
+  foreach ($view_machine_names as $view_machine_name) {
+    $view = views_get_view($view_machine_name, TRUE);
+    views_save_view($view);
+  }
+}
+
+/**
  * Disable Display Suite layout for a view mode of an entity bundle.
  *
  * @param string $entity_type
