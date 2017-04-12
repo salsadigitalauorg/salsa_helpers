@@ -85,6 +85,19 @@ function salsa_helpers_features_revert($module, $component = NULL, $verbose = TR
 
 /**
  * Enables a module and does some error checking.
+ *
+ * @param  $modules
+ *         A list of modules in the structure
+ *         array('modules_machine_name' => $enable_dependencies)
+ */
+function salsa_helpers_enable_module_list($modules) {
+  foreach ($modules as $module => $enable_dependencies) {
+    salsa_helpers_enable_module($module, $enable_dependencies);
+  }
+}
+
+/**
+ * Enables a module and does some error checking.
  */
 function salsa_helpers_enable_module($module, $enable_dependencies = TRUE) {
   if (module_exists($module)) {
