@@ -86,9 +86,9 @@ function salsa_helpers_features_revert($module, $component = NULL, $verbose = TR
 /**
  * Enables a module and does some error checking.
  *
- * @param  $modules
- *         A list of modules in the structure
- *         array('modules_machine_name' => $enable_dependencies)
+ * @param array $modules
+ *        A list of modules in the structure
+ *        array('modules_machine_name' => $enable_dependencies)
  */
 function salsa_helpers_enable_module_list($modules) {
   foreach ($modules as $module => $enable_dependencies) {
@@ -483,8 +483,9 @@ function salsa_helpers_disable_views($view_machine_names) {
 }
 
 /**
- * Save views from features into the database for permanent storage. This will allow the
- * feature to be disabled whilst maintaining the functionality.
+ * Save views from features into the database for permanent storage.
+ *
+ * This allows the feature to be disabled whilst maintaining the functionality.
  *
  * @param string[] $view_machine_names
  *   Array of view machine name.
@@ -531,7 +532,8 @@ function salsa_helpers_disable_ds_layout($entity_type, $bundle, $view_mode) {
  *   An array of items.
  *   Each item should be in a format as expected by menu_link_save().
  *   Children items can be included as a multidimensional array.
- *   The weight of the item will automatically be determined by the order in the array if not explicitly set.
+ *   The weight of the item will automatically be determined by
+ *   the order in the array if not explicitly set.
  * @param string $menu_name
  *   The name of the menu. Recommended if not present in the $items array.
  */
@@ -566,12 +568,12 @@ function salsa_helpers_create_menu_link($items, $menu_name = NULL) {
 }
 
 /**
- * Lock or unlock features based on a passed in array
+ * Lock or unlock features based on a passed in array.
  *
- * @param $features
- *    The list of features.
+ * @param array $features
+ *        The list of features.
  * @param bool $unlock
- *    Set to TRUE to unlock instead of locak the features.
+ *        Set to TRUE to unlock instead of locak the features.
  */
 function salsa_helpers_lock_features($features, $unlock = FALSE) {
   $function = 'features_feature_lock';
@@ -606,18 +608,23 @@ function salsa_helpers_create_block($values, $node_types = array()) {
 
   if (!empty($node_types)) {
     foreach ($node_types as $node_type) {
-      $query = db_insert('block_node_type')->fields(array('type', 'module', 'delta'))->values(array(
-        'type' => $node_type,
-        'module' => $values['module'],
-        'delta' => $values['delta'],
-      ));
+      $query = db_insert('block_node_type')->fields(
+        array('type', 'module', 'delta'))->values(
+          array(
+            'type' => $node_type,
+            'module' => $values['module'],
+            'delta' => $values['delta'],
+          )
+        );
       $query->execute();
     }
   }
 }
 
 /**
- * Saves a menu block configuration. Code still needs to be written to write the block to the 'block' table.
+ * Saves a menu block configuration.
+ *
+ * Code still needs to be written to write the block to the 'block' table.
  *
  * @param string $delta
  *   A unique delta for the menu block.
@@ -635,10 +642,11 @@ function salsa_helpers_save_menu_block_configuration($delta, $menu_block_details
 /**
  * Return a tid for a given term name.
  *
- * @param $name
- *   Name of the term to search for.
- * @param $vocab
- *  (optional) Vocabulary machine name to limit the search. Defaults to NULL.
+ * @param string $name
+ *        Name of the term to search for.
+ * @param string $vocab
+ *        (optional) Vocabulary machine name to limit the search.
+ *        Defaults to NULL.
  *
  * @return int
  *   The term tid if found or 0 otherwise.
