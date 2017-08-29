@@ -86,9 +86,9 @@ function salsa_helpers_features_revert($module, $component = NULL, $verbose = TR
 /**
  * Enables a module and does some error checking.
  *
- * @param  $modules
- *         A list of modules in the structure
- *         array('modules_machine_name' => $enable_dependencies)
+ * @param array $modules
+ *   A list of modules in the structure
+ *   array('modules_machine_name' => $enable_dependencies)
  */
 function salsa_helpers_enable_module_list($modules) {
   foreach ($modules as $module => $enable_dependencies) {
@@ -98,6 +98,12 @@ function salsa_helpers_enable_module_list($modules) {
 
 /**
  * Enables a module and does some error checking.
+ *
+ * @param string $module
+ *    Module name.
+ * @param bool $enable_dependencies
+ *    Whether to enable all dependencies.
+ * @throws DrupalUpdateException
  */
 function salsa_helpers_enable_module($module, $enable_dependencies = TRUE) {
   if (module_exists($module)) {
@@ -269,13 +275,15 @@ function salsa_helpers_is_today_or_future_dates($date_field) {
  *   Description for the bean.
  * @param string $delta
  *   Delta for the bean.
- * @param callable $content_callback
+ * @param callable|string $content
  *   Callback function which will return the content for the bean.
  * @param string $body_format
  *   Machine name of input format for body field.
  */
-function salsa_helpers_create_bean($label, $title, $description, $delta, callable $content_callback, $body_format = 'rich_text') {
-  $bean = bean_create(array('type' => 'basic_content'));
+function salsa_helpers_create_bean($label, $title, $description, $delta, $content, $body_format = 'rich_text') {
+  if (!($bean = bean_load_delta($delta))) {
+    $bean = bean_create(array('type' => 'basic_content'));
+  }
   $bean->label = $label;
   $bean->title = $title;
   $bean->description = $description;
@@ -283,7 +291,7 @@ function salsa_helpers_create_bean($label, $title, $description, $delta, callabl
   $bean->field_bean_body = array(
     'und' => array(
       array(
-        'value' => $content_callback(),
+        'value' => is_callable($content) ? $content() : $content,
         'format' => $body_format,
       ),
     ),
@@ -483,8 +491,10 @@ function salsa_helpers_disable_views($view_machine_names) {
 }
 
 /**
- * Save views from features into the database for permanent storage. This will allow the
- * feature to be disabled whilst maintaining the functionality.
+ * Save views from features into the database for permanent storage.
+ *
+ * This will allow the feature to be disabled
+ * whilst maintaining the functionality.
  *
  * @param string[] $view_machine_names
  *   Array of view machine name.
@@ -531,7 +541,8 @@ function salsa_helpers_disable_ds_layout($entity_type, $bundle, $view_mode) {
  *   An array of items.
  *   Each item should be in a format as expected by menu_link_save().
  *   Children items can be included as a multidimensional array.
- *   The weight of the item will automatically be determined by the order in the array if not explicitly set.
+ *   The weight of the item will automatically be determined by the order in
+ *   the array if not explicitly set.
  * @param string $menu_name
  *   The name of the menu. Recommended if not present in the $items array.
  */
@@ -617,7 +628,9 @@ function salsa_helpers_create_block($values, $node_types = array()) {
 }
 
 /**
- * Saves a menu block configuration. Code still needs to be written to write the block to the 'block' table.
+ * Saves a menu block configuration.
+ *
+ * Code still needs to be written to write the block to the 'block' table.
  *
  * @param string $delta
  *   A unique delta for the menu block.
@@ -635,9 +648,9 @@ function salsa_helpers_save_menu_block_configuration($delta, $menu_block_details
 /**
  * Return a tid for a given term name.
  *
- * @param $name
+ * @param string $name
  *   Name of the term to search for.
- * @param $vocab
+ * @param string $vocab
  *  (optional) Vocabulary machine name to limit the search. Defaults to NULL.
  *
  * @return int
@@ -650,4 +663,72 @@ function salsa_helpers_return_tid_for_term_name($name, $vocab = NULL) {
     return $term->tid;
   }
   return 0;
+}
+
+/**
+ * Revert govCMS features.
+ *
+ * Wrapper function that handles unlocking, reverting and locking features.
+ *
+ * @param array $govCMSFeatures
+ *   An array of govCMS features to revert.
+ */
+function salsa_helpers_revert_govcms_features(array $govCMSFeatures) {
+  // Unlock the govCMS features.
+  salsa_helpers_lock_features($govCMSFeatures, TRUE);
+
+  foreach ($govCMSFeatures as $govCMSFeature) {
+    salsa_helpers_features_revert($govCMSFeature);
+  }
+
+  // Lock to avoid accidental reverting.
+  salsa_helpers_lock_features($govCMSFeatures);
+}
+
+/**
+ * Lock default govCMS features.
+ */
+function salsa_helpers_lock_default_govcms_features() {
+  $govCMSFeatures = array(
+    'govcms_basic_page',
+    'govcms_beans',
+    'govcms_blog',
+    'govcms_chosen',
+    'govcms_common_fields',
+    'govcms_consultation',
+    'govcms_content_blog',
+    'govcms_content_event',
+    'govcms_content_media_release',
+    'govcms_content_news_article',
+    'govcms_content_promotion',
+    'govcms_content_publication',
+    'govcms_content_slides',
+    'govcms_content_standard_page',
+    'govcms_editing',
+    'govcms_events',
+    'govcms_front',
+    'govcms_image_styles',
+    'govcms_inactive_account',
+    'govcms_media_releases',
+    'govcms_menu',
+    'govcms_news',
+    'govcms_promotion',
+    'govcms_publications',
+    'govcms_share_links',
+    'govcms_sitemap',
+    'govcms_slideshow',
+    'govcms_superfish_configuration',
+    'govcms_tags',
+  );
+
+  foreach ($govCMSFeatures as $feature) {
+    features_feature_lock($feature);
+    // Also lock all its components.
+    $feature = features_load_feature($feature);
+    if ($feature && !empty($feature->components)) {
+      foreach ($feature->components as $component) {
+        features_feature_lock($feature->name, $component);
+      }
+    }
+  }
 }
