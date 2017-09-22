@@ -732,3 +732,106 @@ function salsa_helpers_lock_default_govcms_features() {
     }
   }
 }
+
+/**
+ * Save all Search API Indices to database.
+ */
+function salsa_helpers_save_search_api_indexes_to_db() {
+  $indexes = entity_load('search_api_index', FALSE);
+  $facetapiEnabled = module_exists('facetapi');
+  foreach ($indexes as $index) {
+    // Set status to overridden.
+    $index->status = 1;
+    $index->save();
+
+    if (!$facetapiEnabled) {
+      continue;
+    }
+
+    $searcher = 'search_api@' . $index->machine_name;
+    $adapter = facetapi_adapter_load($searcher);
+    $realms = facetapi_get_realm_info();
+    $facets = facetapi_get_facet_info($searcher);
+    foreach ($facets as $facet_name => $facet) {
+      foreach ($realms as $realm) {
+        $enabled = facetapi_facet_enabled($searcher, $realm['name'], $facet_name);
+        facetapi_save_facet_status($adapter, $realm, $facet, $enabled, FALSE, FALSE);
+      }
+    }
+  }
+}
+
+/**
+ * Save all Search API Pages to database.
+ */
+function salsa_helpers_save_search_api_pages_to_db() {
+  $pages = entity_load('search_api_page', FALSE);
+  foreach ($pages as $page) {
+    $page->status = 1;
+    $page->save();
+  }
+}
+
+/**
+ * Save all file displays to database.
+ */
+function salsa_helpers_save_file_displays_to_db() {
+  $file_types = ['audio', 'document', 'image', 'video'];
+  $view_modes = ['default', 'teaser', 'full', 'preview', 'wysiwyg'];
+
+  foreach ($file_types as $file_type) {
+    foreach ($view_modes as $view_mode) {
+      $file_displays = file_displays($file_type, $view_mode);
+      foreach ($file_displays as $name => $file_display) {
+        $file_display['name'] = $file_type . '__' . $view_mode . '__' . $name;
+        try {
+          file_display_save((object) $file_display);
+        }
+        catch (Exception $e) {
+          //watchdog_exception('salsa_helpers', $e);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Save DS settings to database.
+ */
+function salsa_helpers_save_ds_settings_to_db() {
+  $bundles = node_type_get_types();
+  $view_modes = ds_entity_view_modes('node');
+  foreach ($bundles as $bundle_name => $bundle) {
+    foreach ($view_modes as $view_mode_name => $view_mode) {
+      if ($layout = ds_get_layout('node', $bundle_name, $view_mode_name)) {
+        $layout_object = (object) $layout;
+        $layout_object->id = 'node|' . $bundle_name . '|' . $view_mode_name;
+        $layout_object->entity_type = 'node';
+        $layout_object->bundle = $bundle_name;
+        ctools_export_crud_save('ds_layout_settings', $layout_object);
+      }
+
+      if ($field_settings = ds_get_field_settings('node', $bundle_name, $view_mode_name)) {
+        $object = (object) $field_settings;
+        $object->id = 'node|' . $bundle_name . '|' . $view_mode_name;
+        $object->entity_type = 'node';
+        $object->bundle = $bundle_name;
+        ctools_export_crud_save('ds_field_settings', $layout_object);
+      }
+    }
+  }
+}
+
+/**
+ * Save Page Manager and Panels to DB.
+ */
+function salsa_helper_save_panels_to_db() {
+  module_load_include('module', 'ctools');
+  ctools_include('export');
+  module_load_include('module', 'page_manager');
+  ctools_include('page', 'page_manager', 'plugins/tasks');
+  $pages = page_manager_page_load_all();
+  foreach ($pages as $page) {
+    page_manager_page_save($page);
+  }
+}
