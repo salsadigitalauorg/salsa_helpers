@@ -592,7 +592,7 @@ function salsa_helpers_lock_features($features, $unlock = FALSE) {
   foreach ($features as $feature) {
     $function($feature);
     // Also lock all its components.
-    $feature = features_load_feature($feature);
+    $feature = features_get_features($feature);
     if ($feature && !empty($feature->components)) {
       foreach ($feature->components as $component) {
         $function($feature->name, $component);
@@ -724,7 +724,7 @@ function salsa_helpers_lock_default_govcms_features() {
   foreach ($govCMSFeatures as $feature) {
     features_feature_lock($feature);
     // Also lock all its components.
-    $feature = features_load_feature($feature);
+    $feature = features_get_features($feature);
     if ($feature && !empty($feature->components)) {
       foreach ($feature->components as $component) {
         features_feature_lock($feature->name, $component);
