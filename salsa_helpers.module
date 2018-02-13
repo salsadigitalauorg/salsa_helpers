@@ -263,7 +263,7 @@ function salsa_helpers_is_today_or_future_dates($date_field) {
 }
 
 /**
- * Creates and saves a bean to the database.
+ * Creates and saves a Basic Text bean to the database.
  *
  * Content for the bean should be passed in the form of a callback function.
  *
@@ -298,6 +298,41 @@ function salsa_helpers_create_bean($label, $title, $description, $delta, $conten
   );
   $bean->save();
   _block_rehash();
+}
+
+/**
+ * Create a custom Bean.
+ *
+ * @param string $type
+ *   Bean type.
+ * @param string $label
+ *   Administrative Label of the block.
+ * @param string $title
+ *   Title of the block.
+ * @param string $description
+ *   Description text.
+ * @param string $delta
+ *   Bean ID.
+ * @param array $fields
+ *   Array of field data.
+ * @return \Bean $bean
+ *   Bean.
+ */
+function salsa_helpers_create_custom_bean($type, $label, $title, $description, $delta, $fields = array()) {
+  if (!($bean = bean_load_delta($delta))) {
+    $bean = bean_create(array('type' => $type));
+  }
+  $bean->label = $label;
+  $bean->title = $title;
+  $bean->description = $description;
+  $bean->delta = $delta;
+  foreach ($fields as $field_name => $field) {
+    $bean->$field_name = $field;
+  }
+  $bean->save();
+  _block_rehash();
+
+  return $bean;
 }
 
 /**
